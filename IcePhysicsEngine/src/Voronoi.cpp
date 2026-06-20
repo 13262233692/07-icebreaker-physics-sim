@@ -831,6 +831,8 @@ namespace IcePhysics
 
         Vector2 origin(m_position.x, m_position.z);
 
+        uint32_t fragmentCollisionGroup = (uint32_t)(0x1 << ((m_id % 30) + 1));
+
         for (const auto& cell : diagram.cells)
         {
             if (cell.vertices.size() < 3) continue;
@@ -839,6 +841,12 @@ namespace IcePhysics
             fragment.id = m_nextFragmentId++;
             fragment.isActive = true;
             fragment.lifetime = 30.0f;
+            fragment.sourceSheetId = m_id;
+            fragment.collisionGroup = fragmentCollisionGroup;
+            fragment.collisionCooldown = 2.0f;
+            fragment.bodyId = 0;
+            fragment.colliderId = 0;
+            fragment.isStatic = false;
 
             GenerateFragmentMesh(cell, origin, fragment);
             ExtrudeFragment(fragment, m_thickness);

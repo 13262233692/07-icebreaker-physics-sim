@@ -135,6 +135,12 @@ namespace IcePhysics
         AABB bounds;
         bool isActive;
         float lifetime;
+        uint32_t sourceSheetId;
+        uint32_t collisionGroup;
+        float collisionCooldown;
+        uint32_t bodyId;
+        uint32_t colliderId;
+        bool isStatic;
     };
 
     struct IceImpactData

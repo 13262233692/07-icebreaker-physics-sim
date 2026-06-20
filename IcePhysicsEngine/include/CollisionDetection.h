@@ -16,6 +16,31 @@ namespace IcePhysics
         uint32_t bodyB;
         uint32_t colliderA;
         uint32_t colliderB;
+        bool isCCDPair;
+    };
+
+    struct TOIResult
+    {
+        bool hasCollision;
+        float time;
+        Vector3 normal;
+        Vector3 point;
+        float penetration;
+        uint32_t iterations;
+    };
+
+    struct SweepInput
+    {
+        Vector3 startPosA;
+        Quaternion startRotA;
+        Vector3 endPosA;
+        Quaternion endRotA;
+        Vector3 startPosB;
+        Quaternion startRotB;
+        Vector3 endPosB;
+        Quaternion endRotB;
+        float tolerance;
+        uint32_t maxIterations;
     };
 
     struct CollisionData
@@ -93,6 +118,20 @@ namespace IcePhysics
                  const Vector3& posB, const Quaternion& rotB,
                  Vector3& outNormal, float& outPenetration, Vector3& outPoint);
 
+        TOIResult ConservativeAdvancement(const Collider* colliderA, const Collider* colliderB,
+                                          const SweepInput& sweep);
+
+        TOIResult LinearCast(const Collider* colliderA, const Collider* colliderB,
+                             const Vector3& posA, const Quaternion& rotA,
+                             const Vector3& posB, const Quaternion& rotB,
+                             const Vector3& deltaA, const Vector3& deltaB,
+                             float maxDistance);
+
+        float GJKDistance(const Collider* colliderA, const Collider* colliderB,
+                          const Vector3& posA, const Quaternion& rotA,
+                          const Vector3& posB, const Quaternion& rotB,
+                          Vector3& outClosestPointA, Vector3& outClosestPointB);
+
     private:
         struct SimplexPoint
         {
@@ -148,11 +187,20 @@ namespace IcePhysics
         void Solve(std::vector<CollisionData>& collisions, RigidBodyManager& bodyManager, float dt);
         void SetIterations(uint32_t velocityIterations, uint32_t positionIterations);
 
+        void SetEnabled(bool enabled) { m_enabled = enabled; }
+        bool IsEnabled() const { return m_enabled; }
+
+        uint32_t GetLastIterationCount() const { return m_lastIterationCount; }
+
     private:
         uint32_t m_velocityIterations;
         uint32_t m_positionIterations;
         float m_baumgarte;
         float m_allowedPenetration;
+        bool m_enabled;
+        uint32_t m_lastIterationCount;
+        float m_velocitySleepThreshold;
+        float m_positionSleepThreshold;
 
         struct ContactConstraint
         {
@@ -179,12 +227,15 @@ namespace IcePhysics
             float tangent1Impulse;
             float tangent2Impulse;
             float bias;
+            bool isSleeping;
         };
 
         void SetupContactConstraint(ContactConstraint& constraint, const CollisionManifold& manifold,
                                     RigidBody* bodyA, RigidBody* bodyB, float dt);
         void SolveVelocityConstraint(ContactConstraint& constraint, RigidBody* bodyA, RigidBody* bodyB);
         void SolvePositionConstraint(ContactConstraint& constraint, RigidBody* bodyA, RigidBody* bodyB);
+
+        bool CheckEarlyExit(const std::vector<ContactConstraint>& constraints) const;
     };
 
     class CollisionWorld
@@ -209,6 +260,12 @@ namespace IcePhysics
                                         const Collider* iceCollider, const Collider* shipCollider,
                                         uint32_t& pointCount, PressurePoint* pressurePoints);
 
+        uint32_t GetCCDTestCount() const { return m_ccdTestCount; }
+        uint32_t GetCCDHitCount() const { return m_ccdHitCount; }
+
+        void SetMaxSubSteps(uint32_t steps) { m_maxSubSteps = steps; }
+        uint32_t GetMaxSubSteps() const { return m_maxSubSteps; }
+
     private:
         Vector3 m_gravity;
         BroadPhase m_broadPhase;
@@ -216,16 +273,25 @@ namespace IcePhysics
         ContactSolver m_contactSolver;
 
         std::vector<CollisionPair> m_potentialPairs;
+        std::vector<CollisionPair> m_ccdPairs;
         std::vector<CollisionData> m_activeCollisions;
         std::unordered_set<uint64_t> m_previousFrameCollisions;
         std::unordered_set<uint64_t> m_currentFrameCollisions;
 
         CollisionEventCallback m_collisionCallback;
 
+        uint32_t m_ccdTestCount;
+        uint32_t m_ccdHitCount;
+        uint32_t m_maxSubSteps;
+
         uint64_t GetCollisionKey(uint32_t bodyA, uint32_t bodyB) const;
 
         void UpdateBroadPhase(RigidBodyManager& bodyManager, ColliderManager& colliderManager);
         void PerformNarrowPhase(RigidBodyManager& bodyManager, ColliderManager& colliderManager);
         void ApplyGravity(RigidBodyManager& bodyManager);
+
+        void CollectCCDPairs(RigidBodyManager& bodyManager, ColliderManager& colliderManager);
+        void PerformCCDTests(RigidBodyManager& bodyManager, ColliderManager& colliderManager, float dt);
+        bool ShouldCollide(const RigidBody* bodyA, const RigidBody* bodyB) const;
     };
 }

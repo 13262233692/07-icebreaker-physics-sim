@@ -31,6 +31,8 @@ namespace IcePhysicsUnity
         private uint m_activeRigidBodyCount;
         private uint m_activeIceSheetCount;
         private uint m_activeCollisionCount;
+        private uint m_ccdTestCount;
+        private uint m_sleepingBodyCount;
 
         private DebugLogCallback m_debugLogCallback;
         private CollisionEventCallback m_collisionEventCallback;
@@ -51,6 +53,10 @@ namespace IcePhysicsUnity
         public uint ActiveIceSheetCount => m_activeIceSheetCount;
 
         public uint ActiveCollisionCount => m_activeCollisionCount;
+
+        public uint CCDTestCount => m_ccdTestCount;
+
+        public uint SleepingBodyCount => m_sleepingBodyCount;
 
         public float WaterDensity
         {
@@ -161,6 +167,8 @@ namespace IcePhysicsUnity
             m_activeRigidBodyCount = IcePhysicsInterop.IP_GetActiveRigidBodyCount();
             m_activeIceSheetCount = IcePhysicsInterop.IP_GetActiveIceSheetCount();
             m_activeCollisionCount = IcePhysicsInterop.IP_GetActiveCollisionCount();
+            m_ccdTestCount = IcePhysicsInterop.IP_GetCCDTestCount();
+            m_sleepingBodyCount = IcePhysicsInterop.IP_GetSleepingBodyCount();
         }
 
         private void OnDebugLogHandler(ref DebugLogEntry entry)

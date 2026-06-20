@@ -26,10 +26,25 @@ namespace IcePhysics
         , m_isSensor(desc.isSensor)
         , m_isAwake(true)
         , m_isDirty(true)
+        , m_isCCDEnabled(false)
         , m_userData(desc.userData)
-        , m_sleepThreshold(0.08f)
+        , m_flags(desc.flags)
+        , m_collisionGroup(desc.collisionGroup)
+        , m_collisionMask(desc.collisionMask ? desc.collisionMask : 0xFFFFFFFF)
+        , m_islandId(0)
+        , m_sleepThreshold(desc.sleepThreshold > 0.0f ? desc.sleepThreshold : 0.08f)
+        , m_sleepEnergy(0.0f)
         , m_sleepTimer(0)
+        , m_ccdRadius(desc.ccdRadius > 0.0f ? desc.ccdRadius : 0.5f)
     {
+        if (desc.flags & RB_FLAG_CCD_ENABLED)
+        {
+            m_isCCDEnabled = true;
+        }
+        if (desc.flags & RB_FLAG_ALWAYS_AWAKE)
+        {
+            m_sleepThreshold = 0.0f;
+        }
     }
 
     RigidBody::~RigidBody()
@@ -222,15 +237,51 @@ namespace IcePhysics
         m_isDirty = true;
     }
 
+    void RigidBody::SetAwake(bool awake)
+    {
+        if (awake)
+        {
+            m_isAwake = true;
+            m_sleepTimer = 0;
+            m_sleepEnergy = 0.0f;
+        }
+        else
+        {
+            if (m_sleepThreshold <= 0.0f) return;
+            m_isAwake = false;
+            m_linearVelocity = Math::Vec3Zero();
+            m_angularVelocity = Math::Vec3Zero();
+            m_forceAccumulator = Math::Vec3Zero();
+            m_torqueAccumulator = Math::Vec3Zero();
+        }
+    }
+
+    bool RigidBody::CanCollideWith(const RigidBody* other) const
+    {
+        if (!other) return false;
+        if (m_isSensor || other->m_isSensor) return true;
+        if ((m_collisionGroup & other->m_collisionMask) == 0) return false;
+        if ((other->m_collisionGroup & m_collisionMask) == 0) return false;
+        return true;
+    }
+
     void RigidBody::Update(float dt)
     {
         if (!m_isAwake) return;
+        if (m_sleepThreshold <= 0.0f) return;
 
-        float speedSq = Math::LengthSquared(m_linearVelocity) + Math::LengthSquared(m_angularVelocity);
-        if (speedSq < m_sleepThreshold * m_sleepThreshold)
+        float kineticEnergy = 0.5f * m_mass * Math::LengthSquared(m_linearVelocity);
+        Vector3 angularMomentum = Math::Mat3MulVec3(GetWorldInertiaTensor(), m_angularVelocity);
+        float rotationalEnergy = 0.5f * Math::Dot(m_angularVelocity, angularMomentum);
+        float totalEnergy = kineticEnergy + rotationalEnergy;
+
+        m_sleepEnergy = Math::Max(m_sleepEnergy * 0.95f, totalEnergy);
+
+        float sleepThresholdSq = m_sleepThreshold * m_sleepThreshold * m_mass;
+        if (m_sleepEnergy < sleepThresholdSq * 0.1f)
         {
             m_sleepTimer++;
-            if (m_sleepTimer > 60)
+            if (m_sleepTimer > 120)
             {
                 m_isAwake = false;
                 m_linearVelocity = Math::Vec3Zero();
@@ -334,5 +385,60 @@ namespace IcePhysics
             }
         }
         return count;
+    }
+
+    uint32_t RigidBodyManager::GetSleepingCount() const
+    {
+        uint32_t count = 0;
+        for (const auto& pair : m_bodies)
+        {
+            if (!pair.second->IsAwake())
+            {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    uint32_t RigidBodyManager::GetCCDBodyCount() const
+    {
+        uint32_t count = 0;
+        for (const auto& pair : m_bodies)
+        {
+            if (pair.second->IsCCDEnabled())
+            {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    void RigidBodyManager::IntegrateAwake(float dt)
+    {
+        for (auto& pair : m_bodies)
+        {
+            if (pair.second->IsAwake())
+            {
+                pair.second->IntegrateLinear(dt);
+                pair.second->IntegrateAngular(dt);
+            }
+        }
+    }
+
+    void RigidBodyManager::WakeUpBody(uint32_t bodyId)
+    {
+        RigidBody* body = GetBody(bodyId);
+        if (body)
+        {
+            body->SetAwake(true);
+        }
+    }
+
+    void RigidBodyManager::WakeUpAll()
+    {
+        for (auto& pair : m_bodies)
+        {
+            pair.second->SetAwake(true);
+        }
     }
 }

@@ -131,7 +131,12 @@ namespace IcePhysicsUnity
                 angularDamping = 0.1f,
                 isKinematic = false,
                 isSensor = false,
-                userData = 0
+                userData = 0,
+                flags = (uint)(RigidBodyFlags.CCDEnabled | RigidBodyFlags.ShipHull | RigidBodyFlags.AlwaysAwake),
+                collisionGroup = 0x00000001,
+                collisionMask = 0xFFFFFFFF,
+                sleepThreshold = 0.1f,
+                ccdRadius = Mathf.Max(m_shipLength, m_shipBeam) * 0.5f
             };
 
             m_physicsBodyId = IcePhysicsManager.Instance.CreateRigidBody(desc);

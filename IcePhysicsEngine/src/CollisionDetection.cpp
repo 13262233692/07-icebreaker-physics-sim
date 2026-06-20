@@ -977,9 +977,13 @@ namespace IcePhysics
 
     ContactSolver::ContactSolver()
         : m_velocityIterations(8)
-        , m_positionIterations(3)
+        , m_positionIterations(4)
         , m_baumgarte(0.2f)
         , m_allowedPenetration(0.01f)
+        , m_enabled(true)
+        , m_lastIterationCount(0)
+        , m_velocitySleepThreshold(0.001f)
+        , m_positionSleepThreshold(0.001f)
     {
     }
 
@@ -1292,6 +1296,9 @@ namespace IcePhysics
     CollisionWorld::CollisionWorld()
         : m_gravity(Vector3(0, -9.81f, 0))
         , m_collisionCallback(nullptr)
+        , m_ccdTestCount(0)
+        , m_ccdHitCount(0)
+        , m_maxSubSteps(4)
     {
     }
 
@@ -1332,9 +1339,6 @@ namespace IcePhysics
 
     void CollisionWorld::PerformNarrowPhase(RigidBodyManager& bodyManager, ColliderManager& colliderManager)
     {
-        m_activeCollisions.clear();
-        m_currentFrameCollisions.clear();
-
         for (const auto& pair : m_potentialPairs)
         {
             Collider* colliderA = colliderManager.GetCollider(pair.colliderA);
@@ -1347,7 +1351,22 @@ namespace IcePhysics
                 continue;
             }
 
+            if (!ShouldCollide(bodyA, bodyB))
+            {
+                continue;
+            }
+
             if (bodyA->IsSensor() || bodyB->IsSensor())
+            {
+                continue;
+            }
+
+            if (!bodyA->IsAwake() && !bodyB->IsAwake())
+            {
+                continue;
+            }
+
+            if (pair.isCCDPair)
             {
                 continue;
             }
@@ -1489,12 +1508,328 @@ namespace IcePhysics
         }
     }
 
+    bool CollisionWorld::ShouldCollide(const RigidBody* bodyA, const RigidBody* bodyB) const
+    {
+        if (!bodyA || !bodyB) return false;
+        if (bodyA->GetId() == bodyB->GetId()) return false;
+        if (!bodyA->CanCollideWith(bodyB)) return false;
+        if (!bodyA->IsAwake() && !bodyB->IsAwake()) return false;
+        return true;
+    }
+
+    void CollisionWorld::CollectCCDPairs(RigidBodyManager& bodyManager, ColliderManager& colliderManager)
+    {
+        m_ccdPairs.clear();
+
+        for (const auto& pair : m_potentialPairs)
+        {
+            RigidBody* bodyA = bodyManager.GetBody(pair.bodyA);
+            RigidBody* bodyB = bodyManager.GetBody(pair.bodyB);
+
+            if (!bodyA || !bodyB) continue;
+            if (!ShouldCollide(bodyA, bodyB)) continue;
+
+            bool isCCDPair = bodyA->IsCCDEnabled() || bodyB->IsCCDEnabled();
+
+            if (isCCDPair)
+            {
+                float speedA = Math::Length(bodyA->GetLinearVelocity());
+                float speedB = Math::Length(bodyB->GetLinearVelocity());
+                float relSpeed = Math::Length(bodyA->GetLinearVelocity() - bodyB->GetLinearVelocity());
+
+                float minRadius = Math::Min(bodyA->GetCCDRadius(), bodyB->GetCCDRadius());
+                float moveDistance = relSpeed * (1.0f / 60.0f);
+
+                if (moveDistance > minRadius * 0.2f)
+                {
+                    CollisionPair ccdPair = pair;
+                    ccdPair.isCCDPair = true;
+                    m_ccdPairs.push_back(ccdPair);
+                }
+            }
+        }
+    }
+
+    void CollisionWorld::PerformCCDTests(RigidBodyManager& bodyManager, ColliderManager& colliderManager, float dt)
+    {
+        m_ccdTestCount = 0;
+        m_ccdHitCount = 0;
+
+        for (const auto& pair : m_ccdPairs)
+        {
+            RigidBody* bodyA = bodyManager.GetBody(pair.bodyA);
+            RigidBody* bodyB = bodyManager.GetBody(pair.bodyB);
+            Collider* colliderA = colliderManager.GetCollider(pair.colliderA);
+            Collider* colliderB = colliderManager.GetCollider(pair.colliderB);
+
+            if (!bodyA || !bodyB || !colliderA || !colliderB) continue;
+
+            m_ccdTestCount++;
+
+            SweepInput sweep;
+            sweep.startPosA = bodyA->GetPrevPosition();
+            sweep.startRotA = bodyA->GetPrevRotation();
+            sweep.endPosA = bodyA->GetPosition();
+            sweep.endRotA = bodyA->GetRotation();
+            sweep.startPosB = bodyB->GetPrevPosition();
+            sweep.startRotB = bodyB->GetPrevRotation();
+            sweep.endPosB = bodyB->GetPosition();
+            sweep.endRotB = bodyB->GetRotation();
+            sweep.tolerance = 0.001f;
+            sweep.maxIterations = 32;
+
+            TOIResult result = m_narrowPhase.ConservativeAdvancement(colliderA, colliderB, sweep);
+
+            if (result.hasCollision && result.time >= 0.0f && result.time < 1.0f)
+            {
+                m_ccdHitCount++;
+
+                float toi = result.time;
+                Vector3 interpolatedPosA = Math::Lerp(sweep.startPosA, sweep.endPosA, toi);
+                Quaternion interpolatedRotA = Math::QuatSlerp(sweep.startRotA, sweep.endRotA, toi);
+                Vector3 interpolatedPosB = Math::Lerp(sweep.startPosB, sweep.endPosB, toi);
+                Quaternion interpolatedRotB = Math::QuatSlerp(sweep.startRotB, sweep.endRotB, toi);
+
+                bodyA->SetPosition(interpolatedPosA);
+                bodyA->SetRotation(interpolatedRotA);
+                bodyB->SetPosition(interpolatedPosB);
+                bodyB->SetRotation(interpolatedRotB);
+
+                CollisionData ccdCollision;
+                ccdCollision.bodyA = pair.bodyA;
+                ccdCollision.bodyB = pair.bodyB;
+                ccdCollision.colliderA = pair.colliderA;
+                ccdCollision.colliderB = pair.colliderB;
+                ccdCollision.friction = 0.5f;
+                ccdCollision.restitution = 0.1f;
+
+                CollisionManifold manifold;
+                manifold.normal = result.normal;
+                manifold.point = result.point;
+                manifold.penetration = Math::Max(result.penetration, 0.001f);
+                manifold.impulse = 0.0f;
+                ccdCollision.manifolds.push_back(manifold);
+
+                m_activeCollisions.push_back(ccdCollision);
+            }
+        }
+    }
+
     void CollisionWorld::Step(float dt, RigidBodyManager& bodyManager, ColliderManager& colliderManager)
     {
+        m_ccdTestCount = 0;
+        m_ccdHitCount = 0;
+        m_activeCollisions.clear();
+        m_currentFrameCollisions.clear();
+
         ApplyGravity(bodyManager);
+
+        bodyManager.IntegrateAwake(dt);
+
         UpdateBroadPhase(bodyManager, colliderManager);
+
+        CollectCCDPairs(bodyManager, colliderManager);
+
+        if (!m_ccdPairs.empty())
+        {
+            PerformCCDTests(bodyManager, colliderManager, dt);
+        }
+
         PerformNarrowPhase(bodyManager, colliderManager);
-        m_contactSolver.Solve(m_activeCollisions, bodyManager, dt);
+
+        if (m_contactSolver.IsEnabled())
+        {
+            m_contactSolver.Solve(m_activeCollisions, bodyManager, dt);
+        }
+
         DispatchCollisionEvents();
+    }
+
+    TOIResult NarrowPhase::ConservativeAdvancement(const Collider* colliderA, const Collider* colliderB,
+                                                   const SweepInput& sweep)
+    {
+        TOIResult result;
+        result.hasCollision = false;
+        result.time = 1.0f;
+        result.iterations = 0;
+
+        Vector3 posA = sweep.startPosA;
+        Quaternion rotA = sweep.startRotA;
+        Vector3 posB = sweep.startPosB;
+        Quaternion rotB = sweep.startRotB;
+
+        float currentTime = 0.0f;
+        float tolerance = sweep.tolerance;
+        uint32_t maxIterations = sweep.maxIterations;
+
+        Vector3 closestPointA, closestPointB;
+        float initialDistance = GJKDistance(colliderA, colliderB, posA, rotA, posB, rotB, closestPointA, closestPointB);
+
+        if (initialDistance <= 0.0f)
+        {
+            result.hasCollision = true;
+            result.time = 0.0f;
+            result.normal = Math::Normalize(closestPointB - closestPointA);
+            result.point = (closestPointA + closestPointB) * 0.5f;
+            result.penetration = -initialDistance;
+            return result;
+        }
+
+        for (uint32_t iter = 0; iter < maxIterations; iter++)
+        {
+            result.iterations = iter + 1;
+
+            float distance = GJKDistance(colliderA, colliderB, posA, rotA, posB, rotB, closestPointA, closestPointB);
+
+            if (distance <= tolerance)
+            {
+                result.hasCollision = true;
+                result.time = currentTime;
+                Vector3 diff = closestPointB - closestPointA;
+                float len = Math::Length(diff);
+                result.normal = len > Math::EPSILON ? diff / len : Vector3(0, 1, 0);
+                result.point = (closestPointA + closestPointB) * 0.5f;
+                result.penetration = Math::Max(-distance, 0.0f);
+                return result;
+            }
+
+            Vector3 direction = closestPointA - closestPointB;
+            float dirLen = Math::Length(direction);
+            if (dirLen < Math::EPSILON) break;
+            direction /= dirLen;
+
+            Vector3 linVelA = (sweep.endPosA - sweep.startPosA);
+            Vector3 linVelB = (sweep.endPosB - sweep.startPosB);
+            Vector3 relVel = linVelA - linVelB;
+
+            float approachSpeed = Math::Dot(relVel, direction);
+
+            if (approachSpeed <= 0.0f)
+            {
+                break;
+            }
+
+            float stepTime = distance / approachSpeed;
+            stepTime = Math::Min(stepTime, 1.0f - currentTime);
+
+            if (stepTime < tolerance * 0.1f)
+            {
+                break;
+            }
+
+            currentTime += stepTime;
+
+            if (currentTime >= 1.0f - tolerance)
+            {
+                break;
+            }
+
+            posA = Math::Lerp(sweep.startPosA, sweep.endPosA, currentTime);
+            rotA = Math::QuatSlerp(sweep.startRotA, sweep.endRotA, currentTime);
+            posB = Math::Lerp(sweep.startPosB, sweep.endPosB, currentTime);
+            rotB = Math::QuatSlerp(sweep.startRotB, sweep.endRotB, currentTime);
+        }
+
+        return result;
+    }
+
+    TOIResult NarrowPhase::LinearCast(const Collider* colliderA, const Collider* colliderB,
+                                      const Vector3& posA, const Quaternion& rotA,
+                                      const Vector3& posB, const Quaternion& rotB,
+                                      const Vector3& deltaA, const Vector3& deltaB,
+                                      float maxDistance)
+    {
+        TOIResult result;
+        result.hasCollision = false;
+        result.time = 1.0f;
+        result.iterations = 0;
+
+        SweepInput sweep;
+        sweep.startPosA = posA;
+        sweep.startRotA = rotA;
+        sweep.endPosA = posA + deltaA;
+        sweep.endRotA = rotA;
+        sweep.startPosB = posB;
+        sweep.startRotB = rotB;
+        sweep.endPosB = posB + deltaB;
+        sweep.endRotB = rotB;
+        sweep.tolerance = 0.001f;
+        sweep.maxIterations = 32;
+
+        return ConservativeAdvancement(colliderA, colliderB, sweep);
+    }
+
+    float NarrowPhase::GJKDistance(const Collider* colliderA, const Collider* colliderB,
+                                   const Vector3& posA, const Quaternion& rotA,
+                                   const Vector3& posB, const Quaternion& rotB,
+                                   Vector3& outClosestPointA, Vector3& outClosestPointB)
+    {
+        Simplex simplex;
+        Vector3 direction = Vector3(1, 0, 0);
+
+        SimplexPoint initialPoint;
+        GetSupport(colliderA, colliderB, posA, rotA, posB, rotB, direction, initialPoint);
+        simplex.points[0] = initialPoint;
+        simplex.count = 1;
+
+        direction = initialPoint.point * -1.0f;
+
+        const uint32_t MAX_GJK_ITERATIONS = 64;
+        for (uint32_t i = 0; i < MAX_GJK_ITERATIONS; i++)
+        {
+            SimplexPoint newPoint;
+            GetSupport(colliderA, colliderB, posA, rotA, posB, rotB, direction, newPoint);
+
+            float dot = Math::Dot(newPoint.point, direction);
+            if (dot > 0.0f)
+            {
+                float dist = Math::Length(newPoint.point);
+                outClosestPointA = newPoint.supportA;
+                outClosestPointB = newPoint.supportB;
+                return dist;
+            }
+
+            if (simplex.count < 4)
+            {
+                simplex.points[simplex.count++] = newPoint;
+            }
+            else
+            {
+                return 0.0f;
+            }
+
+            bool containsOrigin = GJKNextSimplex(simplex, direction);
+            if (containsOrigin)
+            {
+                outClosestPointA = (simplex.count > 0) ? simplex.points[0].supportA : posA;
+                outClosestPointB = (simplex.count > 0) ? simplex.points[0].supportB : posB;
+                return 0.0f;
+            }
+        }
+
+        if (simplex.count > 0)
+        {
+            outClosestPointA = simplex.points[0].supportA;
+            outClosestPointB = simplex.points[0].supportB;
+            return Math::Length(simplex.points[0].point);
+        }
+
+        return Math::Length(posA - posB);
+    }
+
+    bool ContactSolver::CheckEarlyExit(const std::vector<ContactConstraint>& constraints) const
+    {
+        if (constraints.empty()) return true;
+
+        float maxImpulse = 0.0f;
+        for (const auto& c : constraints)
+        {
+            if (c.isSleeping) continue;
+            maxImpulse = Math::Max(maxImpulse, Math::Abs(c.normalImpulse));
+            maxImpulse = Math::Max(maxImpulse, Math::Abs(c.tangent1Impulse));
+            maxImpulse = Math::Max(maxImpulse, Math::Abs(c.tangent2Impulse));
+        }
+
+        return maxImpulse < m_velocitySleepThreshold;
     }
 }

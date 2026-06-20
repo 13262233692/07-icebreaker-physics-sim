@@ -70,6 +70,7 @@ namespace IcePhysics
         inline float DistanceSquared(const Vector3& a, const Vector3& b) { return LengthSquared(b - a); }
         inline float Distance(const Vector3& a, const Vector3& b) { return Length(b - a); }
         inline Vector3 Negate(const Vector3& v) { return Vector3(-v.x, -v.y, -v.z); }
+        inline Vector3 Lerp(const Vector3& a, const Vector3& b, float t) { return a + (b - a) * t; }
 
         inline Vector2 Vec2(float x, float y) { return Vector2(x, y); }
         inline Vector2 Vec2Zero() { return Vector2(0, 0); }
@@ -158,6 +159,49 @@ namespace IcePhysics
             float lenSq = QuatDot(q, q);
             if (lenSq < EPSILON) return QuatIdentity();
             return Quaternion(-q.x / lenSq, -q.y / lenSq, -q.z / lenSq, q.w / lenSq);
+        }
+
+        inline Quaternion QuatLerp(const Quaternion& a, const Quaternion& b, float t)
+        {
+            Quaternion result;
+            result.x = a.x + (b.x - a.x) * t;
+            result.y = a.y + (b.y - a.y) * t;
+            result.z = a.z + (b.z - a.z) * t;
+            result.w = a.w + (b.w - a.w) * t;
+            return QuatNormalize(result);
+        }
+
+        inline Quaternion QuatSlerp(const Quaternion& a, const Quaternion& b, float t)
+        {
+            float dot = QuatDot(a, b);
+            Quaternion b2 = b;
+
+            if (dot < 0.0f)
+            {
+                b2.x = -b2.x;
+                b2.y = -b2.y;
+                b2.z = -b2.z;
+                b2.w = -b2.w;
+                dot = -dot;
+            }
+
+            if (dot > 0.9995f)
+            {
+                return QuatLerp(a, b2, t);
+            }
+
+            float theta = Acos(dot);
+            float sinTheta = Sin(theta);
+
+            float ratioA = Sin((1.0f - t) * theta) / sinTheta;
+            float ratioB = Sin(t * theta) / sinTheta;
+
+            Quaternion result;
+            result.x = a.x * ratioA + b2.x * ratioB;
+            result.y = a.y * ratioA + b2.y * ratioB;
+            result.z = a.z * ratioA + b2.z * ratioB;
+            result.w = a.w * ratioA + b2.w * ratioB;
+            return result;
         }
 
         inline Vector3 QuatToEuler(const Quaternion& q)

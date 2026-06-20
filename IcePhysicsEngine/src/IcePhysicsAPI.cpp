@@ -988,5 +988,185 @@ namespace IcePhysics
                 world->GetDebugLogger().ClearLastError();
             }
         }
+
+        ICEPHYSICS_API void IP_SetRigidBodyCCDEnabled(uint32_t bodyId, bool enabled)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world)
+            {
+                SetError(ERROR_NOT_INITIALIZED);
+                return;
+            }
+
+            if (bodyId == 0)
+            {
+                SetError(ERROR_INVALID_BODY_ID);
+                return;
+            }
+
+            RigidBody* body = world->GetRigidBodyManager().GetBody(bodyId);
+            if (!body)
+            {
+                SetError(ERROR_INVALID_BODY_ID);
+                return;
+            }
+
+            body->SetCCDEnabled(enabled);
+        }
+
+        ICEPHYSICS_API bool IP_GetRigidBodyCCDEnabled(uint32_t bodyId)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world || bodyId == 0) return false;
+
+            RigidBody* body = world->GetRigidBodyManager().GetBody(bodyId);
+            return body ? body->IsCCDEnabled() : false;
+        }
+
+        ICEPHYSICS_API void IP_SetRigidBodyCCDRadius(uint32_t bodyId, float radius)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world)
+            {
+                SetError(ERROR_NOT_INITIALIZED);
+                return;
+            }
+
+            if (bodyId == 0)
+            {
+                SetError(ERROR_INVALID_BODY_ID);
+                return;
+            }
+
+            RigidBody* body = world->GetRigidBodyManager().GetBody(bodyId);
+            if (!body)
+            {
+                SetError(ERROR_INVALID_BODY_ID);
+                return;
+            }
+
+            body->SetCCDRadius(radius);
+        }
+
+        ICEPHYSICS_API float IP_GetRigidBodyCCDRadius(uint32_t bodyId)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world || bodyId == 0) return 0.0f;
+
+            RigidBody* body = world->GetRigidBodyManager().GetBody(bodyId);
+            return body ? body->GetCCDRadius() : 0.0f;
+        }
+
+        ICEPHYSICS_API void IP_SetRigidBodyCollisionGroup(uint32_t bodyId, uint32_t group, uint32_t mask)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world)
+            {
+                SetError(ERROR_NOT_INITIALIZED);
+                return;
+            }
+
+            if (bodyId == 0)
+            {
+                SetError(ERROR_INVALID_BODY_ID);
+                return;
+            }
+
+            RigidBody* body = world->GetRigidBodyManager().GetBody(bodyId);
+            if (!body)
+            {
+                SetError(ERROR_INVALID_BODY_ID);
+                return;
+            }
+
+            body->SetCollisionFilter(group, mask);
+        }
+
+        ICEPHYSICS_API void IP_GetRigidBodyCollisionGroup(uint32_t bodyId, uint32_t* group, uint32_t* mask)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world || bodyId == 0 || !group || !mask) return;
+
+            RigidBody* body = world->GetRigidBodyManager().GetBody(bodyId);
+            if (body)
+            {
+                *group = body->GetCollisionGroup();
+                *mask = body->GetCollisionMask();
+            }
+        }
+
+        ICEPHYSICS_API void IP_SetRigidBodySleepThreshold(uint32_t bodyId, float threshold)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world)
+            {
+                SetError(ERROR_NOT_INITIALIZED);
+                return;
+            }
+
+            if (bodyId == 0)
+            {
+                SetError(ERROR_INVALID_BODY_ID);
+                return;
+            }
+
+            RigidBody* body = world->GetRigidBodyManager().GetBody(bodyId);
+            if (body)
+            {
+                body->SetSleepThreshold(threshold);
+            }
+        }
+
+        ICEPHYSICS_API float IP_GetRigidBodySleepThreshold(uint32_t bodyId)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world || bodyId == 0) return 0.0f;
+
+            RigidBody* body = world->GetRigidBodyManager().GetBody(bodyId);
+            return body ? body->GetSleepThreshold() : 0.0f;
+        }
+
+        ICEPHYSICS_API void IP_SetRigidBodyAwake(uint32_t bodyId, bool awake)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world)
+            {
+                SetError(ERROR_NOT_INITIALIZED);
+                return;
+            }
+
+            if (bodyId == 0)
+            {
+                SetError(ERROR_INVALID_BODY_ID);
+                return;
+            }
+
+            world->GetRigidBodyManager().WakeUpBody(bodyId);
+        }
+
+        ICEPHYSICS_API bool IP_GetRigidBodyAwake(uint32_t bodyId)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world || bodyId == 0) return false;
+
+            RigidBody* body = world->GetRigidBodyManager().GetBody(bodyId);
+            return body ? body->IsAwake() : false;
+        }
+
+        ICEPHYSICS_API uint32_t IP_GetCCDTestCount()
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world) return 0;
+
+            return world->GetCollisionWorld().GetCCDTestCount();
+        }
+
+        ICEPHYSICS_API uint32_t IP_GetSleepingBodyCount()
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world) return 0;
+
+            return world->GetRigidBodyManager().GetSleepingCount();
+        }
     }
 }

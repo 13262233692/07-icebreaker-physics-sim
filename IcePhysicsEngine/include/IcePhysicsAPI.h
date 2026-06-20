@@ -65,6 +65,17 @@ namespace IcePhysics
         uint32_t vertexCount;
     };
 
+    enum RigidBodyFlags : uint32_t
+    {
+        RB_FLAG_NONE = 0,
+        RB_FLAG_KINEMATIC = 1 << 0,
+        RB_FLAG_SENSOR = 1 << 1,
+        RB_FLAG_CCD_ENABLED = 1 << 2,
+        RB_FLAG_ALWAYS_AWAKE = 1 << 3,
+        RB_FLAG_ICE_FRAGMENT = 1 << 4,
+        RB_FLAG_SHIP_HULL = 1 << 5,
+    };
+
     struct RigidBodyDesc
     {
         Vector3 position;
@@ -81,6 +92,11 @@ namespace IcePhysics
         bool isKinematic;
         bool isSensor;
         uint32_t userData;
+        uint32_t flags;
+        uint32_t collisionGroup;
+        uint32_t collisionMask;
+        float sleepThreshold;
+        float ccdRadius;
     };
 
     struct CollisionManifold
@@ -245,6 +261,22 @@ namespace IcePhysics
         ICEPHYSICS_API uint32_t IP_GetActiveCollisionCount();
         ICEPHYSICS_API float IP_GetSimulationTime();
         ICEPHYSICS_API uint64_t IP_GetFrameCount();
+
+        ICEPHYSICS_API void IP_SetRigidBodyCCDEnabled(uint32_t bodyId, bool enabled);
+        ICEPHYSICS_API bool IP_GetRigidBodyCCDEnabled(uint32_t bodyId);
+        ICEPHYSICS_API void IP_SetRigidBodyCCDRadius(uint32_t bodyId, float radius);
+        ICEPHYSICS_API float IP_GetRigidBodyCCDRadius(uint32_t bodyId);
+
+        ICEPHYSICS_API void IP_SetRigidBodyCollisionGroup(uint32_t bodyId, uint32_t group, uint32_t mask);
+        ICEPHYSICS_API void IP_GetRigidBodyCollisionGroup(uint32_t bodyId, uint32_t* group, uint32_t* mask);
+
+        ICEPHYSICS_API void IP_SetRigidBodySleepThreshold(uint32_t bodyId, float threshold);
+        ICEPHYSICS_API float IP_GetRigidBodySleepThreshold(uint32_t bodyId);
+        ICEPHYSICS_API void IP_SetRigidBodyAwake(uint32_t bodyId, bool awake);
+        ICEPHYSICS_API bool IP_GetRigidBodyAwake(uint32_t bodyId);
+
+        ICEPHYSICS_API uint32_t IP_GetCCDTestCount();
+        ICEPHYSICS_API uint32_t IP_GetSleepingBodyCount();
 
         ICEPHYSICS_API const char* IP_GetLastError();
         ICEPHYSICS_API void IP_ClearLastError();

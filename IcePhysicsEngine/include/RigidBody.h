@@ -7,6 +7,8 @@
 
 namespace IcePhysics
 {
+    struct CollisionPair;
+
     class RigidBody
     {
     public:
@@ -72,7 +74,32 @@ namespace IcePhysics
         void SetSensor(bool sensor) { m_isSensor = sensor; }
 
         bool IsAwake() const { return m_isAwake; }
-        void SetAwake(bool awake) { m_isAwake = awake; }
+        void SetAwake(bool awake);
+
+        float GetSleepThreshold() const { return m_sleepThreshold; }
+        void SetSleepThreshold(float threshold) { m_sleepThreshold = threshold; }
+
+        bool IsCCDEnabled() const { return m_isCCDEnabled; }
+        void SetCCDEnabled(bool enabled) { m_isCCDEnabled = enabled; }
+
+        float GetCCDRadius() const { return m_ccdRadius; }
+        void SetCCDRadius(float radius) { m_ccdRadius = radius; }
+
+        uint32_t GetCollisionGroup() const { return m_collisionGroup; }
+        void SetCollisionGroup(uint32_t group) { m_collisionGroup = group; }
+
+        uint32_t GetCollisionMask() const { return m_collisionMask; }
+        void SetCollisionMask(uint32_t mask) { m_collisionMask = mask; }
+
+        void SetCollisionFilter(uint32_t group, uint32_t mask) { m_collisionGroup = group; m_collisionMask = mask; }
+
+        bool CanCollideWith(const RigidBody* other) const;
+
+        uint32_t GetFlags() const { return m_flags; }
+        void SetFlags(uint32_t flags) { m_flags = flags; }
+        void AddFlags(uint32_t flags) { m_flags |= flags; }
+        void RemoveFlags(uint32_t flags) { m_flags &= ~flags; }
+        bool HasFlags(uint32_t flags) const { return (m_flags & flags) != 0; }
 
         uint32_t GetUserData() const { return m_userData; }
         void SetUserData(uint32_t data) { m_userData = data; }
@@ -84,6 +111,15 @@ namespace IcePhysics
         void ClearDirty() { m_isDirty = false; }
 
         void Update(float dt);
+
+        Vector3 GetPrevPosition() const { return m_prevPosition; }
+        Quaternion GetPrevRotation() const { return m_prevRotation; }
+
+        uint32_t GetIslandId() const { return m_islandId; }
+        void SetIslandId(uint32_t id) { m_islandId = id; }
+
+        float GetSleepEnergy() const { return m_sleepEnergy; }
+        void AddSleepEnergy(float energy) { m_sleepEnergy = Math::Max(m_sleepEnergy, energy); }
 
     private:
         uint32_t m_id;
@@ -111,11 +147,18 @@ namespace IcePhysics
         bool m_isSensor;
         bool m_isAwake;
         bool m_isDirty;
+        bool m_isCCDEnabled;
 
         uint32_t m_userData;
+        uint32_t m_flags;
+        uint32_t m_collisionGroup;
+        uint32_t m_collisionMask;
+        uint32_t m_islandId;
 
         float m_sleepThreshold;
+        float m_sleepEnergy;
         uint32_t m_sleepTimer;
+        float m_ccdRadius;
     };
 
     class RigidBodyManager
@@ -131,12 +174,18 @@ namespace IcePhysics
 
         void Update(float dt);
         void IntegrateAll(float dt);
+        void IntegrateAwake(float dt);
         void ClearAllForces();
 
         uint32_t GetActiveCount() const { return (uint32_t)m_bodies.size(); }
         uint32_t GetAwakeCount() const;
+        uint32_t GetSleepingCount() const;
+        uint32_t GetCCDBodyCount() const;
 
         const std::unordered_map<uint32_t, RigidBody*>& GetBodies() const { return m_bodies; }
+
+        void WakeUpBody(uint32_t bodyId);
+        void WakeUpAll();
 
     private:
         std::unordered_map<uint32_t, RigidBody*> m_bodies;

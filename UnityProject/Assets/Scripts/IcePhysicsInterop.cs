@@ -143,6 +143,21 @@ namespace IcePhysicsUnity
         [MarshalAs(UnmanagedType.U1)] public bool isKinematic;
         [MarshalAs(UnmanagedType.U1)] public bool isSensor;
         public uint userData;
+        public uint flags;
+        public uint collisionGroup;
+        public uint collisionMask;
+        public float sleepThreshold;
+        public float ccdRadius;
+    }
+
+    [Flags]
+    public enum RigidBodyFlags : uint
+    {
+        None = 0,
+        CCDEnabled = (1 << 0),
+        AlwaysAwake = (1 << 1),
+        IceFragment = (1 << 2),
+        ShipHull = (1 << 3),
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -329,6 +344,38 @@ namespace IcePhysicsUnity
         public static extern void IP_ApplyImpulse(uint bodyId, ref Vector3 impulse, ref Vector3 point);
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void IP_SetRigidBodyCCDEnabled(uint bodyId, [MarshalAs(UnmanagedType.U1)] bool enabled);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool IP_GetRigidBodyCCDEnabled(uint bodyId);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void IP_SetRigidBodyCCDRadius(uint bodyId, float radius);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern float IP_GetRigidBodyCCDRadius(uint bodyId);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void IP_SetRigidBodyCollisionGroup(uint bodyId, uint group, uint mask);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void IP_GetRigidBodyCollisionGroup(uint bodyId, out uint group, out uint mask);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void IP_SetRigidBodySleepThreshold(uint bodyId, float threshold);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern float IP_GetRigidBodySleepThreshold(uint bodyId);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void IP_SetRigidBodyAwake(uint bodyId, [MarshalAs(UnmanagedType.U1)] bool awake);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool IP_GetRigidBodyAwake(uint bodyId);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint IP_CreateBoxCollider(uint bodyId, ref Vector3 halfExtents, ref Vector3 offset, ref Quaternion rotationOffset);
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
@@ -390,6 +437,12 @@ namespace IcePhysicsUnity
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint IP_GetActiveCollisionCount();
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint IP_GetCCDTestCount();
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint IP_GetSleepingBodyCount();
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         public static extern float IP_GetSimulationTime();

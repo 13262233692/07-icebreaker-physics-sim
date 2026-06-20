@@ -58,6 +58,12 @@ namespace IcePhysics
         float solverTimeMs;
         float hydrodynamicTimeMs;
         float totalStepTimeMs;
+        uint32_t ccdTestCount;
+        uint32_t ccdHitCount;
+        uint32_t sleepingBodyCount;
+        uint32_t awakeBodyCount;
+        uint32_t islandCount;
+        uint32_t solverIterations;
     };
 
     class PhysicsWorld
