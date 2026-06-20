@@ -1168,5 +1168,119 @@ namespace IcePhysics
 
             return world->GetRigidBodyManager().GetSleepingCount();
         }
+
+        ICEPHYSICS_API void IP_SetWindFieldParams(const WindFieldParams* params)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world)
+            {
+                SetError(ERROR_NOT_INITIALIZED);
+                return;
+            }
+
+            if (!params)
+            {
+                SetError(ERROR_INVALID_PARAMS);
+                return;
+            }
+
+            world->SetWindFieldParams(params);
+        }
+
+        ICEPHYSICS_API void IP_GetWindFieldParams(WindFieldParams* params)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world || !params) return;
+
+            world->GetWindFieldParams(params);
+        }
+
+        ICEPHYSICS_API void IP_SetOceanCurrentParams(const OceanCurrentParams* params)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world)
+            {
+                SetError(ERROR_NOT_INITIALIZED);
+                return;
+            }
+
+            if (!params)
+            {
+                SetError(ERROR_INVALID_PARAMS);
+                return;
+            }
+
+            world->SetOceanCurrentParams(params);
+        }
+
+        ICEPHYSICS_API void IP_GetOceanCurrentParams(OceanCurrentParams* params)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world || !params) return;
+
+            world->GetOceanCurrentParams(params);
+        }
+
+        ICEPHYSICS_API void IP_GetMarineEnvironmentState(MarineEnvironmentState* state)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world || !state) return;
+
+            world->GetMarineEnvironmentState(state);
+        }
+
+        ICEPHYSICS_API void IP_CalculateWindForceOnShip(uint32_t bodyId, WindForceResult* result)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world)
+            {
+                SetError(ERROR_NOT_INITIALIZED);
+                return;
+            }
+
+            if (bodyId == 0 || !result)
+            {
+                SetError(ERROR_INVALID_PARAMS);
+                return;
+            }
+
+            world->CalculateWindForceOnShip(bodyId, result);
+        }
+
+        ICEPHYSICS_API Vector3 IP_GetWaveHeightAtPosition(const Vector3* position, float time)
+        {
+            Vector3 result = { 0.0f, 0.0f, 0.0f };
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world || !position) return result;
+
+            return world->GetWaveHeightAtPosition(*position);
+        }
+
+        ICEPHYSICS_API Vector3 IP_GetOceanCurrentAtPosition(const Vector3* position, float time)
+        {
+            Vector3 result = { 0.0f, 0.0f, 0.0f };
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world || !position) return result;
+
+            return world->GetOceanCurrentAtPosition(*position);
+        }
+
+        ICEPHYSICS_API void IP_ApplyOceanForcesToFragment(uint32_t bodyId, float fragmentRadius, float fragmentMass)
+        {
+            PhysicsWorld* world = GetPhysicsWorld();
+            if (!world)
+            {
+                SetError(ERROR_NOT_INITIALIZED);
+                return;
+            }
+
+            if (bodyId == 0)
+            {
+                SetError(ERROR_INVALID_BODY_ID);
+                return;
+            }
+
+            world->ApplyOceanForcesToFragment(bodyId, fragmentRadius, fragmentMass);
+        }
     }
 }

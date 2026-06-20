@@ -66,6 +66,7 @@ if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT
     "D:/SOLO-0619-3/07-icebreaker-physics-sim/IcePhysicsEngine/include/Hydrodynamics.h"
     "D:/SOLO-0619-3/07-icebreaker-physics-sim/IcePhysicsEngine/include/Voronoi.h"
     "D:/SOLO-0619-3/07-icebreaker-physics-sim/IcePhysicsEngine/include/PhysicsWorld.h"
+    "D:/SOLO-0619-3/07-icebreaker-physics-sim/IcePhysicsEngine/include/MarineEnvironment.h"
     )
 endif()
 

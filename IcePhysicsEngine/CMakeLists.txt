@@ -22,6 +22,7 @@ set(ICEPHYSICS_HEADERS
     ${ICEPHYSICS_INCLUDE_DIR}/Hydrodynamics.h
     ${ICEPHYSICS_INCLUDE_DIR}/Voronoi.h
     ${ICEPHYSICS_INCLUDE_DIR}/PhysicsWorld.h
+    ${ICEPHYSICS_INCLUDE_DIR}/MarineEnvironment.h
 )
 
 set(ICEPHYSICS_SOURCES
@@ -32,6 +33,7 @@ set(ICEPHYSICS_SOURCES
     ${ICEPHYSICS_SOURCE_DIR}/Voronoi.cpp
     ${ICEPHYSICS_SOURCE_DIR}/PhysicsWorld.cpp
     ${ICEPHYSICS_SOURCE_DIR}/IcePhysicsAPI.cpp
+    ${ICEPHYSICS_SOURCE_DIR}/MarineEnvironment.cpp
 )
 
 add_library(IcePhysicsEngine SHARED

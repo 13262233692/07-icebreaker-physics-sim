@@ -154,10 +154,12 @@ namespace IcePhysicsUnity
     public enum RigidBodyFlags : uint
     {
         None = 0,
-        CCDEnabled = (1 << 0),
-        AlwaysAwake = (1 << 1),
-        IceFragment = (1 << 2),
-        ShipHull = (1 << 3),
+        Kinematic = (1 << 0),
+        Sensor = (1 << 1),
+        CCDEnabled = (1 << 2),
+        AlwaysAwake = (1 << 3),
+        IceFragment = (1 << 4),
+        ShipHull = (1 << 5),
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -233,6 +235,57 @@ namespace IcePhysicsUnity
         public float rudderArea;
         public float rudderAspectRatio;
         public float waterDensity;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WindFieldParams
+    {
+        public Vector3 windDirection;
+        public float windSpeed;
+        public float windGustFactor;
+        public float turbulenceIntensity;
+        public float airDensity;
+        public float boundaryLayerHeight;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct OceanCurrentParams
+    {
+        public Vector3 currentDirection;
+        public float currentSpeed;
+        public float waveAmplitude;
+        public float waveFrequency;
+        public float waveDirectionX;
+        public float waveDirectionZ;
+        public float swellAmplitude;
+        public float swellFrequency;
+        public float swellDirectionX;
+        public float swellDirectionZ;
+        public float tideHeight;
+        public float tidePeriod;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MarineEnvironmentState
+    {
+        public Vector3 windVelocity;
+        public Vector3 currentVelocity;
+        public float waveHeight;
+        public float wavePeriod;
+        public float waveDirection;
+        public float seaState;
+        public float visibility;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WindForceResult
+    {
+        public Vector3 windForce;
+        public Vector3 windTorque;
+        public float lateralDriftForce;
+        public float yawMoment;
+        public float driftAngleDeg;
+        public float relativeWindAngleDeg;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -443,6 +496,33 @@ namespace IcePhysicsUnity
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint IP_GetSleepingBodyCount();
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void IP_SetWindFieldParams(ref WindFieldParams params);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void IP_GetWindFieldParams(out WindFieldParams params);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void IP_SetOceanCurrentParams(ref OceanCurrentParams params);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void IP_GetOceanCurrentParams(out OceanCurrentParams params);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void IP_GetMarineEnvironmentState(out MarineEnvironmentState state);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void IP_CalculateWindForceOnShip(uint bodyId, out WindForceResult result);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern Vector3 IP_GetWaveHeightAtPosition(ref Vector3 position, float time);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern Vector3 IP_GetOceanCurrentAtPosition(ref Vector3 position, float time);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void IP_ApplyOceanForcesToFragment(uint bodyId, float fragmentRadius, float fragmentMass);
 
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
         public static extern float IP_GetSimulationTime();

@@ -20,6 +20,31 @@ namespace IcePhysicsUnity
         [SerializeField] private float m_waterTemperature = 0.0f;
         [SerializeField][Range(0, 1)] private float m_iceConcentration = 0.8f;
 
+        [Header("Wind Field")]
+        [SerializeField] private Vector3 m_windDirection = new Vector3(1.0f, 0.0f, 0.0f);
+        [SerializeField] private float m_windSpeed = 5.0f;
+        [SerializeField][Range(1.0f, 3.0f)] private float m_windGustFactor = 1.3f;
+        [SerializeField][Range(0.0f, 0.5f)] private float m_turbulenceIntensity = 0.1f;
+        [SerializeField] private float m_airDensity = 1.225f;
+        [SerializeField] private float m_boundaryLayerHeight = 100.0f;
+
+        [Header("Ocean Current & Waves")]
+        [SerializeField] private Vector3 m_currentDirection = new Vector3(1.0f, 0.0f, 0.0f);
+        [SerializeField] private float m_currentSpeed = 0.5f;
+        [SerializeField] private float m_waveAmplitude = 0.5f;
+        [SerializeField] private float m_waveFrequency = 1.0f;
+        [SerializeField] private float m_waveDirectionX = 1.0f;
+        [SerializeField] private float m_waveDirectionZ = 0.0f;
+        [SerializeField] private float m_swellAmplitude = 0.2f;
+        [SerializeField] private float m_swellFrequency = 0.3f;
+        [SerializeField] private float m_swellDirectionX = 0.7f;
+        [SerializeField] private float m_swellDirectionZ = 0.7f;
+        [SerializeField] private float m_tideHeight = 0.3f;
+        [SerializeField] private float m_tidePeriod = 43200.0f;
+
+        [Header("Marine Environment Debug")]
+        [SerializeField] private MarineEnvironmentState m_marineState;
+
         [Header("Debug")]
         [SerializeField] private bool m_enableDebugLogging = true;
         [SerializeField] private bool m_drawGizmos = true;
@@ -120,6 +145,8 @@ namespace IcePhysicsUnity
                 IcePhysicsInterop.IP_SetCollisionEventCallback(m_collisionEventCallback);
                 IcePhysicsInterop.IP_SetIceBreakCallback(m_iceBreakCallback);
 
+                ApplyMarineEnvironmentParams();
+
                 m_isInitialized = true;
 
                 if (m_enableDebugLogging)
@@ -169,6 +196,76 @@ namespace IcePhysicsUnity
             m_activeCollisionCount = IcePhysicsInterop.IP_GetActiveCollisionCount();
             m_ccdTestCount = IcePhysicsInterop.IP_GetCCDTestCount();
             m_sleepingBodyCount = IcePhysicsInterop.IP_GetSleepingBodyCount();
+
+            IcePhysicsInterop.IP_GetMarineEnvironmentState(out m_marineState);
+        }
+
+        private void ApplyMarineEnvironmentParams()
+        {
+            WindFieldParams windParams = new WindFieldParams
+            {
+                windDirection = m_windDirection.normalized,
+                windSpeed = m_windSpeed,
+                windGustFactor = m_windGustFactor,
+                turbulenceIntensity = m_turbulenceIntensity,
+                airDensity = m_airDensity,
+                boundaryLayerHeight = m_boundaryLayerHeight
+            };
+            IcePhysicsInterop.IP_SetWindFieldParams(ref windParams);
+
+            OceanCurrentParams oceanParams = new OceanCurrentParams
+            {
+                currentDirection = m_currentDirection.normalized,
+                currentSpeed = m_currentSpeed,
+                waveAmplitude = m_waveAmplitude,
+                waveFrequency = m_waveFrequency,
+                waveDirectionX = m_waveDirectionX,
+                waveDirectionZ = m_waveDirectionZ,
+                swellAmplitude = m_swellAmplitude,
+                swellFrequency = m_swellFrequency,
+                swellDirectionX = m_swellDirectionX,
+                swellDirectionZ = m_swellDirectionZ,
+                tideHeight = m_tideHeight,
+                tidePeriod = m_tidePeriod
+            };
+            IcePhysicsInterop.IP_SetOceanCurrentParams(ref oceanParams);
+        }
+
+        public void ApplyWindField(Vector3 direction, float speed, float gustFactor = 1.3f, float turbulence = 0.1f)
+        {
+            m_windDirection = direction.normalized;
+            m_windSpeed = speed;
+            m_windGustFactor = gustFactor;
+            m_turbulenceIntensity = turbulence;
+
+            if (m_isInitialized)
+            {
+                WindFieldParams windParams = new WindFieldParams
+                {
+                    windDirection = m_windDirection,
+                    windSpeed = m_windSpeed,
+                    windGustFactor = m_windGustFactor,
+                    turbulenceIntensity = m_turbulenceIntensity,
+                    airDensity = m_airDensity,
+                    boundaryLayerHeight = m_boundaryLayerHeight
+                };
+                IcePhysicsInterop.IP_SetWindFieldParams(ref windParams);
+            }
+        }
+
+        public void ApplyOceanCurrent(Vector3 direction, float speed)
+        {
+            m_currentDirection = direction.normalized;
+            m_currentSpeed = speed;
+
+            if (m_isInitialized)
+            {
+                OceanCurrentParams oceanParams;
+                IcePhysicsInterop.IP_GetOceanCurrentParams(out oceanParams);
+                oceanParams.currentDirection = m_currentDirection;
+                oceanParams.currentSpeed = m_currentSpeed;
+                IcePhysicsInterop.IP_SetOceanCurrentParams(ref oceanParams);
+            }
         }
 
         private void OnDebugLogHandler(ref DebugLogEntry entry)

@@ -19,6 +19,7 @@ namespace IcePhysicsUnity
         private float m_buoyancy;
         private float m_age;
         private bool m_isSinking;
+        private float m_fragmentRadius;
 
         private Mesh m_mesh;
         private new Rigidbody rigidbody;
@@ -229,6 +230,17 @@ namespace IcePhysicsUnity
 
             rigidbody.velocity = m_desc.velocity;
             rigidbody.angularVelocity = m_desc.angularVelocity;
+
+            if (m_mesh != null)
+            {
+                Vector3 size = m_mesh.bounds.size;
+                m_fragmentRadius = Mathf.Max(size.x, size.y, size.z) * 0.5f;
+            }
+            else
+            {
+                float volume = rigidbody.mass / m_iceDensity;
+                m_fragmentRadius = Mathf.Pow(volume * 3.0f / (4.0f * Mathf.PI), 1.0f / 3.0f);
+            }
         }
 
         private void CalculateBuoyancy()
@@ -261,12 +273,75 @@ namespace IcePhysicsUnity
             }
         }
 
+        private void FixedUpdate()
+        {
+            ApplyOceanForces();
+
+            if (rigidbody == null)
+                return;
+
+            if (rigidbody.velocity.y < -10.0f)
+            {
+                Vector3 vel = rigidbody.velocity;
+                vel.y = -10.0f;
+                rigidbody.velocity = vel;
+            }
+
+            if (transform.position.y < -50.0f)
+            {
+                Destroy(gameObject);
+            }
+        }
+
+        private void ApplyOceanForces()
+        {
+            if (IcePhysicsManager.Instance == null)
+                return;
+
+            float simTime = IcePhysicsManager.Instance.SimulationTime;
+            Vector3 pos = transform.position;
+
+            Vector3 currentVel = IcePhysicsInterop.IP_GetOceanCurrentAtPosition(ref pos, simTime);
+            Vector3 waveHeight = IcePhysicsInterop.IP_GetWaveHeightAtPosition(ref pos, simTime);
+
+            Vector3 relativeVel = currentVel - rigidbody.velocity;
+            relativeVel.y = 0.0f;
+
+            float dragCoeff = 0.8f;
+            float crossSection = Mathf.PI * m_fragmentRadius * m_fragmentRadius;
+            float waterDensity = m_waterDensity;
+
+            Vector3 currentDragForce = 0.5f * waterDensity * crossSection * dragCoeff *
+                relativeVel.magnitude * relativeVel;
+
+            currentDragForce *= 0.1f;
+
+            rigidbody.AddForce(currentDragForce, ForceMode.Force);
+
+            float waterLevel = waveHeight.y;
+            float buoyancyHeight = Mathf.Clamp01(waterLevel - transform.position.y);
+            if (buoyancyHeight > 0.01f)
+            {
+                float torqueFactor = buoyancyHeight * 0.5f;
+                Vector3 waveTorque = new Vector3(
+                    (currentVel.z - rigidbody.velocity.z) * torqueFactor,
+                    0.0f,
+                    -(currentVel.x - rigidbody.velocity.x) * torqueFactor
+                );
+                rigidbody.AddTorque(waveTorque * rigidbody.mass, ForceMode.Force);
+            }
+        }
+
         private void ApplyBuoyancy()
         {
             if (IcePhysicsManager.Instance == null)
                 return;
 
-            float waterLevel = 0.0f;
+            float simTime = IcePhysicsManager.Instance.SimulationTime;
+            Vector3 pos = transform.position;
+            Vector3 waveHeight = IcePhysicsInterop.IP_GetWaveHeightAtPosition(ref pos, simTime);
+
+            float waterLevel = waveHeight.y;
             float submergedHeight = Mathf.Clamp01(waterLevel - transform.position.y);
 
             if (submergedHeight > 0f)
@@ -284,24 +359,6 @@ namespace IcePhysicsUnity
 
                 Vector3 angularDamping = -rigidbody.angularVelocity * 0.5f * submergedHeight;
                 rigidbody.AddTorque(angularDamping, ForceMode.Force);
-            }
-        }
-
-        private void FixedUpdate()
-        {
-            if (rigidbody == null)
-                return;
-
-            if (rigidbody.velocity.y < -10.0f)
-            {
-                Vector3 vel = rigidbody.velocity;
-                vel.y = -10.0f;
-                rigidbody.velocity = vel;
-            }
-
-            if (transform.position.y < -50.0f)
-            {
-                Destroy(gameObject);
             }
         }
 

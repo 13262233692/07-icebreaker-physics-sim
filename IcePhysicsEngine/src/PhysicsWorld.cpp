@@ -153,6 +153,9 @@ namespace IcePhysics
     {
         auto stepStart = std::chrono::high_resolution_clock::now();
 
+        m_marineEnvironment.Update(dt);
+        float simTime = m_marineEnvironment.GetSimulationTime();
+
         auto hydroStart = std::chrono::high_resolution_clock::now();
         for (auto& pair : m_shipStates)
         {
@@ -174,10 +177,29 @@ namespace IcePhysics
             Vector3 totalForce, totalTorque;
             CalculateHydrodynamicForces(bodyId, &totalForce, &totalTorque);
 
+            WindForceResult windResult;
+            memset(&windResult, 0, sizeof(windResult));
+            CalculateWindForceOnShip(bodyId, &windResult);
+            totalForce = totalForce + windResult.windForce;
+            totalTorque = totalTorque + windResult.windTorque;
+
             body->ApplyForce(totalForce, state.position);
             body->ApplyTorque(totalTorque);
         }
         m_iceSheetManager.Update(dt, m_waterDensity, m_gravity);
+
+        const auto& bodies = m_rigidBodyManager.GetBodies();
+        for (const auto& bodyPair : bodies)
+        {
+            RigidBody* body = bodyPair.second;
+            if (body && body->GetFlags() & RB_FLAG_ICE_FRAGMENT)
+            {
+                float fragmentRadius = 1.0f;
+                float fragmentMass = Math::Max(body->GetMass(), 10.0f);
+                m_marineEnvironment.ApplyOceanForcesToFragment(body, fragmentRadius, fragmentMass, simTime);
+            }
+        }
+
         auto hydroEnd = std::chrono::high_resolution_clock::now();
         float hydroMs = std::chrono::duration<float, std::milli>(hydroEnd - hydroStart).count();
 
@@ -434,6 +456,123 @@ namespace IcePhysics
         m_stats.solverTimeMs = m_stats.solverTimeMs * (1.0f - alpha) + solverMs * alpha;
         m_stats.hydrodynamicTimeMs = m_stats.hydrodynamicTimeMs * (1.0f - alpha) + hydroMs * alpha;
         m_stats.totalStepTimeMs = m_stats.totalStepTimeMs * (1.0f - alpha) + totalMs * alpha;
+    }
+
+    void PhysicsWorld::SetWindFieldParams(const WindFieldParams* params)
+    {
+        m_marineEnvironment.SetWindParams(params);
+    }
+
+    void PhysicsWorld::GetWindFieldParams(WindFieldParams* params) const
+    {
+        m_marineEnvironment.GetWindParams(params);
+    }
+
+    void PhysicsWorld::SetOceanCurrentParams(const OceanCurrentParams* params)
+    {
+        m_marineEnvironment.SetOceanParams(params);
+    }
+
+    void PhysicsWorld::GetOceanCurrentParams(OceanCurrentParams* params) const
+    {
+        m_marineEnvironment.GetOceanParams(params);
+    }
+
+    void PhysicsWorld::GetMarineEnvironmentState(MarineEnvironmentState* state) const
+    {
+        m_marineEnvironment.GetEnvironmentState(state, m_marineEnvironment.GetSimulationTime());
+    }
+
+    void PhysicsWorld::CalculateWindForceOnShip(uint32_t bodyId, WindForceResult* result)
+    {
+        if (!result) return;
+
+        memset(result, 0, sizeof(WindForceResult));
+
+        auto it = m_shipStates.find(bodyId);
+        if (it == m_shipStates.end())
+        {
+            RigidBody* body = m_rigidBodyManager.GetBody(bodyId);
+            if (!body) return;
+
+            const WindFieldSystem& windField = m_marineEnvironment.GetWindField();
+            float simTime = m_marineEnvironment.GetSimulationTime();
+
+            HydrodynamicParams hydroParams;
+            m_hydrodynamicSystem.GetParams(&hydroParams);
+
+            float hullLength = hydroParams.hullLength > 0.0f ? hydroParams.hullLength : 100.0f;
+            float hullBeam = hydroParams.hullBeam > 0.0f ? hydroParams.hullBeam : 20.0f;
+            float hullDraft = hydroParams.hullDraft > 0.0f ? hydroParams.hullDraft : 8.0f;
+            float superstructureHeight = hullDraft * 1.5f;
+            float frontalArea = hullBeam * superstructureHeight * 0.6f;
+            float lateralArea = hullLength * superstructureHeight * 0.4f;
+
+            windField.CalculateWindForce(
+                body->GetPosition(),
+                body->GetRotation(),
+                body->GetLinearVelocity(),
+                hullLength, hullBeam, hullDraft,
+                superstructureHeight,
+                frontalArea, lateralArea,
+                simTime,
+                result->windForce, result->windTorque,
+                result->lateralDriftForce, result->yawMoment,
+                result->driftAngleDeg, result->relativeWindAngleDeg
+            );
+            return;
+        }
+
+        ShipState& state = it->second;
+        RigidBody* body = m_rigidBodyManager.GetBody(bodyId);
+        if (!body) return;
+
+        const WindFieldSystem& windField = m_marineEnvironment.GetWindField();
+        float simTime = m_marineEnvironment.GetSimulationTime();
+
+        HydrodynamicParams hydroParams;
+        m_hydrodynamicSystem.GetParams(&hydroParams);
+
+        float hullLength = hydroParams.hullLength > 0.0f ? hydroParams.hullLength : 100.0f;
+        float hullBeam = hydroParams.hullBeam > 0.0f ? hydroParams.hullBeam : 20.0f;
+        float hullDraft = hydroParams.hullDraft > 0.0f ? hydroParams.hullDraft : 8.0f;
+        float superstructureHeight = hullDraft * 1.5f;
+        float frontalArea = hullBeam * superstructureHeight * 0.6f;
+        float lateralArea = hullLength * superstructureHeight * 0.4f;
+
+        windField.CalculateWindForce(
+            state.position,
+            state.rotation,
+            state.linearVelocity,
+            hullLength, hullBeam, hullDraft,
+            superstructureHeight,
+            frontalArea, lateralArea,
+            simTime,
+            result->windForce, result->windTorque,
+            result->lateralDriftForce, result->yawMoment,
+            result->driftAngleDeg, result->relativeWindAngleDeg
+        );
+    }
+
+    Vector3 PhysicsWorld::GetWaveHeightAtPosition(const Vector3& position) const
+    {
+        float height = m_marineEnvironment.GetOceanWaves().GetWaveHeight(position, m_marineEnvironment.GetSimulationTime());
+        return Vector3(0.0f, height, 0.0f);
+    }
+
+    Vector3 PhysicsWorld::GetOceanCurrentAtPosition(const Vector3& position) const
+    {
+        return m_marineEnvironment.GetOceanWaves().GetOceanCurrent(position, m_marineEnvironment.GetSimulationTime());
+    }
+
+    void PhysicsWorld::ApplyOceanForcesToFragment(uint32_t bodyId, float fragmentRadius, float fragmentMass)
+    {
+        RigidBody* body = m_rigidBodyManager.GetBody(bodyId);
+        if (!body) return;
+
+        m_marineEnvironment.ApplyOceanForcesToFragment(
+            body, fragmentRadius, fragmentMass, m_marineEnvironment.GetSimulationTime()
+        );
     }
 
     PhysicsWorld* GetPhysicsWorld()

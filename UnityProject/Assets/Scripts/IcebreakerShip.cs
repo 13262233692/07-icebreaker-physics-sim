@@ -13,6 +13,19 @@ namespace IcePhysicsUnity
         [SerializeField] private float m_shipDraft = 8.5f;
         [SerializeField] private float m_shipDisplacement = 23000.0f;
 
+        [Header("Aerodynamic Parameters (Wind)")]
+        [SerializeField] private float m_superstructureHeight = 25.0f;
+        [SerializeField] private float m_superstructureFrontalArea = 700.0f;
+        [SerializeField] private float m_superstructureLateralArea = 3200.0f;
+
+        [Header("Wind Force Debug Output")]
+        [SerializeField] private Vector3 m_windForce;
+        [SerializeField] private Vector3 m_windTorque;
+        [SerializeField] private float m_lateralDriftForce;
+        [SerializeField] private float m_yawMoment;
+        [SerializeField] private float m_driftAngleDeg;
+        [SerializeField] private float m_relativeWindAngleDeg;
+
         [Header("Engine Parameters")]
         [SerializeField] private float m_maxSpeedKnots = 21.0f;
         [SerializeField] private float m_maxThrottle = 1.0f;
@@ -275,6 +288,15 @@ namespace IcePhysicsUnity
             IcePhysicsInterop.IP_GetRigidBodyRotation(m_physicsBodyId, out m_shipState.rotation);
             IcePhysicsInterop.IP_GetRigidBodyLinearVelocity(m_physicsBodyId, out m_linearVelocity);
             IcePhysicsInterop.IP_GetRigidBodyAngularVelocity(m_physicsBodyId, out m_angularVelocity);
+
+            WindForceResult windResult;
+            IcePhysicsInterop.IP_CalculateWindForceOnShip(m_physicsBodyId, out windResult);
+            m_windForce = windResult.windForce;
+            m_windTorque = windResult.windTorque;
+            m_lateralDriftForce = windResult.lateralDriftForce;
+            m_yawMoment = windResult.yawMoment;
+            m_driftAngleDeg = windResult.driftAngleDeg;
+            m_relativeWindAngleDeg = windResult.relativeWindAngleDeg;
 
             transform.position = m_shipState.position;
             transform.rotation = m_shipState.rotation;

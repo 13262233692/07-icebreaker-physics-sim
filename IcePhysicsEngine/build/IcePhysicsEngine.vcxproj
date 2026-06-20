@@ -473,6 +473,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\Hydrodynamics.h" />
     <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\Voronoi.h" />
     <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\PhysicsWorld.h" />
+    <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\MarineEnvironment.h" />
     <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\RigidBody.cpp" />
     <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\Collider.cpp" />
     <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\CollisionDetection.cpp" />
@@ -480,6 +481,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\Voronoi.cpp" />
     <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\PhysicsWorld.cpp" />
     <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\IcePhysicsAPI.cpp" />
+    <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\MarineEnvironment.cpp" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

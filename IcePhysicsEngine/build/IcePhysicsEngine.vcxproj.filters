@@ -22,6 +22,9 @@
     <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\IcePhysicsAPI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\MarineEnvironment.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\IcePhysicsAPI.h">
@@ -46,6 +49,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\PhysicsWorld.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\MarineEnvironment.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

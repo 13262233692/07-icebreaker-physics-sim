@@ -168,6 +168,53 @@ namespace IcePhysics
         float waterDensity;
     };
 
+    struct WindFieldParams
+    {
+        Vector3 windDirection;
+        float windSpeed;
+        float windGustFactor;
+        float turbulenceIntensity;
+        float airDensity;
+        float boundaryLayerHeight;
+    };
+
+    struct OceanCurrentParams
+    {
+        Vector3 currentDirection;
+        float currentSpeed;
+        float waveAmplitude;
+        float waveFrequency;
+        float waveDirectionX;
+        float waveDirectionZ;
+        float swellAmplitude;
+        float swellFrequency;
+        float swellDirectionX;
+        float swellDirectionZ;
+        float tideHeight;
+        float tidePeriod;
+    };
+
+    struct MarineEnvironmentState
+    {
+        Vector3 windVelocity;
+        Vector3 currentVelocity;
+        float waveHeight;
+        float wavePeriod;
+        float waveDirection;
+        float seaState;
+        float visibility;
+    };
+
+    struct WindForceResult
+    {
+        Vector3 windForce;
+        Vector3 windTorque;
+        float lateralDriftForce;
+        float yawMoment;
+        float driftAngleDeg;
+        float relativeWindAngleDeg;
+    };
+
     struct ShipState
     {
         Vector3 position;
@@ -277,6 +324,17 @@ namespace IcePhysics
 
         ICEPHYSICS_API uint32_t IP_GetCCDTestCount();
         ICEPHYSICS_API uint32_t IP_GetSleepingBodyCount();
+
+        ICEPHYSICS_API void IP_SetWindFieldParams(const WindFieldParams* params);
+        ICEPHYSICS_API void IP_GetWindFieldParams(WindFieldParams* params);
+        ICEPHYSICS_API void IP_SetOceanCurrentParams(const OceanCurrentParams* params);
+        ICEPHYSICS_API void IP_GetOceanCurrentParams(OceanCurrentParams* params);
+        ICEPHYSICS_API void IP_GetMarineEnvironmentState(MarineEnvironmentState* state);
+
+        ICEPHYSICS_API void IP_CalculateWindForceOnShip(uint32_t bodyId, WindForceResult* result);
+        ICEPHYSICS_API Vector3 IP_GetWaveHeightAtPosition(const Vector3* position, float time);
+        ICEPHYSICS_API Vector3 IP_GetOceanCurrentAtPosition(const Vector3* position, float time);
+        ICEPHYSICS_API void IP_ApplyOceanForcesToFragment(uint32_t bodyId, float fragmentRadius, float fragmentMass);
 
         ICEPHYSICS_API const char* IP_GetLastError();
         ICEPHYSICS_API void IP_ClearLastError();

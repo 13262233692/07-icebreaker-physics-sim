@@ -7,6 +7,7 @@
 #include "CollisionDetection.h"
 #include "Hydrodynamics.h"
 #include "Voronoi.h"
+#include "MarineEnvironment.h"
 #include <vector>
 #include <unordered_map>
 #include <string>
@@ -84,6 +85,7 @@ namespace IcePhysics
         InertiaMomentumSolver& GetInertiaSolver() { return m_inertiaSolver; }
         IceSheetManager& GetIceSheetManager() { return m_iceSheetManager; }
         DebugLogger& GetDebugLogger() { return m_debugLogger; }
+        MarineEnvironmentSystem& GetMarineEnvironment() { return m_marineEnvironment; }
 
         void SetGravity(const Vector3& gravity) { m_gravity = gravity; m_collisionWorld.SetGravity(gravity); }
         Vector3 GetGravity() const { return m_gravity; }
@@ -133,6 +135,17 @@ namespace IcePhysics
         void CheckIceCollisions();
         void ProcessIceImpacts();
 
+        void SetWindFieldParams(const WindFieldParams* params);
+        void GetWindFieldParams(WindFieldParams* params) const;
+        void SetOceanCurrentParams(const OceanCurrentParams* params);
+        void GetOceanCurrentParams(OceanCurrentParams* params) const;
+        void GetMarineEnvironmentState(MarineEnvironmentState* state) const;
+
+        void CalculateWindForceOnShip(uint32_t bodyId, WindForceResult* result);
+        Vector3 GetWaveHeightAtPosition(const Vector3& position) const;
+        Vector3 GetOceanCurrentAtPosition(const Vector3& position) const;
+        void ApplyOceanForcesToFragment(uint32_t bodyId, float fragmentRadius, float fragmentMass);
+
     private:
         RigidBodyManager m_rigidBodyManager;
         ColliderManager m_colliderManager;
@@ -141,6 +154,7 @@ namespace IcePhysics
         InertiaMomentumSolver m_inertiaSolver;
         IceSheetManager m_iceSheetManager;
         DebugLogger m_debugLogger;
+        MarineEnvironmentSystem m_marineEnvironment;
 
         Vector3 m_gravity;
         float m_fixedTimestep;
