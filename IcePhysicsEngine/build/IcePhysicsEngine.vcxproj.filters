@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\RigidBody.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\Collider.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\CollisionDetection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\Hydrodynamics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\Voronoi.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\PhysicsWorld.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\src\IcePhysicsAPI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\IcePhysicsAPI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\MathUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\RigidBody.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\Collider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\CollisionDetection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\Hydrodynamics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\Voronoi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\include\PhysicsWorld.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\SOLO-0619-3\07-icebreaker-physics-sim\IcePhysicsEngine\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{220A19CF-0417-3EF9-8363-F51056E4EAE7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{F4ACDB8F-6461-3F91-88C1-06C8F25BB220}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
